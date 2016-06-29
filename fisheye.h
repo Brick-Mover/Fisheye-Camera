@@ -16,13 +16,15 @@
 using namespace std;
 
 const float TOLERANCE = float(1.0e-03);
-enum WALLTYPE {FRONT, BACK, LEFT, RIGHT, CEIL, FLOOR};
+enum WALLTYPE {yPos, yNeg, xNeg, xPos, zPos, zNeg};
+
+
 
 struct Point
 {
     Point(float x0, float y0, float z0) { x = x0; y = y0; z = z0; }
-    Point() { /* cout << "Error!"; exit(1); */ }
     Point& operator = (Point other);
+    bool operator == (Point other);
     float x;
     float y;
     float z;
@@ -53,6 +55,7 @@ struct Pixel
 
 
 const Pixel grey_pixel = Pixel(128, 128, 128);
+const Point origin = Point(0.0, 0.0, 0.0);
 
 
 struct Wall
@@ -61,9 +64,14 @@ struct Wall
     // Wall: Ax + By + Cz = D
     float A, B, C;
     int D;
+    int xDim;
+    int yDim;
+    int zDim;
+    int near;
+    // resolution of the picture
     int length;
     int height;
-    int near;
+    
     WALLTYPE type;
     vector<Pixel> pixels;
     
@@ -73,6 +81,7 @@ struct Wall
     Pixel get_pixel(Point p) const;
     // get the intersection point(with a vector in parametrized form)
     Point intersect(Vec3 dir, Point p) const;
+    bool getIntersection(Vec3 dir, Point cameraPos, Point& intersection) const;
 };
 
 
@@ -80,19 +89,19 @@ struct Surrounding
 {
     Surrounding(Wall* Front, Wall* Back, Wall* Left, Wall* Right, Wall* Ceil, Wall* Floor);
     Surrounding() {};
-    Wall* Front;
-    Wall* Back;
-    Wall* Left;
-    Wall* Right;
-    Wall* Ceil;
-    Wall* Floor;
+    Wall* yPos;
+    Wall* yNeg;
+    Wall* xPos;
+    Wall* xNeg;
+    Wall* zPos;
+    Wall* zNeg;
 };
 
 
 class Fisheye
 {
 public:
-    Fisheye() {}
+    Fisheye():cameraPos(0.0,0.0,0.0) {}
     vector<Pixel> getImage() const { return imagePlane; }
     void render();
     void renderPixel(int x, int y);
@@ -100,11 +109,12 @@ public:
 
 private:
     float aperture;     // range of view
-    float viewAngle;    // angle of the front of camera
+    float viewAngle;    // angle of view direction
     Point cameraPos;
     Surrounding walls;
     int xDim, yDim;     // size of image plane
-    vector<Pixel> imagePlane;
+    
+    vector<Pixel> imagePlane; // the final image produced
     
 };
 
