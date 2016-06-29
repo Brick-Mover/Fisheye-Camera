@@ -15,6 +15,7 @@
 #include <vector>
 #include <math.h>
 
+
 using namespace std;
 
 
@@ -29,13 +30,9 @@ int main(int argc, const char * argv[])
 }
 
 
-
-
-
-
 void Fisheye::render()
 {
-    // On normalized view plane, render each pixel
+    // On view plane, render each pixel
     for (int r = 0; r < yDim; r++) {
         for (int c = 0; c < yDim; c++) {
             renderPixel(r, c);
@@ -52,11 +49,115 @@ void Fisheye::renderPixel(int row, int col)
     float r = sqrtf(xn*xn + yn*yn);
     if (r > 1)
         setColor(row, col, grey_pixel);
-    // theta: [0,2π]
-    float theta = atan2f(yn, xn);
-    // phi: [0,π]
-    float phi = r * aperture / 2;
     
+    // get Cartesian coordinate on the sphere
+    // theta: [0,2π] (xy-plane)
+    float theta = atan2f(yn, xn) + viewAngle;
+    // phi: [0,π] (z direction)
+    float phi = r * aperture / 2;
+    float x = cosf(theta) * sinf(phi);
+    float y = sinf(theta) * sinf(phi);
+    float z = cosf(phi);
+    
+    Vec3 dir(x - cameraPos.x,
+             y - cameraPos.y,
+             z - cameraPos.z);
+    
+    Point intersection = Point(0,0,0);
+    Wall* w;
+    
+    if (walls.yPos->getIntersection(dir, cameraPos, intersection) == true)
+        w = walls.yPos;
+    else if (walls.yNeg->getIntersection(dir, cameraPos, intersection) == true)
+        w = walls.yNeg;
+    else if (walls.xNeg->getIntersection(dir, cameraPos, intersection) == true)
+        w = walls.xNeg;
+    else if (walls.xPos->getIntersection(dir, cameraPos, intersection) == true)
+        w = walls.xPos;
+    else if (walls.zPos->getIntersection(dir, cameraPos, intersection) == true)
+        w = walls.zPos;
+    else
+        w = walls.zNeg;
+    
+    Pixel color = w->get_pixel(intersection);
+    setColor(row, col, color);
+}
+
+
+bool Wall::getIntersection(Vec3 dir, Point cameraPos, Point& intersection) const
+{
+    Point p = intersect(dir, cameraPos);
+    if (p == origin || !isOnWall(p))
+        return false;
+    else {
+        intersection = p;
+        return true;
+    }
+}
+
+
+/* returns origin if there's no collsion(!!!NEED CHANGE LATER)*/
+Point Wall::intersect(Vec3 dir, Point p) const
+{
+    // Ax+By+Cz = D intersect (x0,y0,z0)+(a,b,c)t
+    // t = [D - (Ax0+By0+Cz0)] / (Aa+Bb+Cc)
+    
+    if ((A*dir.x + B*dir.y + C*dir.z) == 0)
+         return Point(0,0,0);
+    
+    float t = (D - A*p.x - B*p.y - C*p.z) / (A*dir.x + B*dir.y + C*dir.z);
+    
+    if (t <= 0)
+        return Point(0,0,0);
+    else
+        return Point(p.x+dir.x*t, p.y+dir.y*t, p.z+dir.z*t);
+}
+
+
+Pixel Wall::get_pixel(Point p) const
+{
+    // shouldn't happen!
+    if (!isOnWall(p)) {
+        cout << "!is not on wall!\n";
+        exit(1);
+    }
+
+}
+
+
+bool Wall::isOnWall(Point p) const {
+    switch (type) {
+        case yPos:
+            //cout << "check front\n";
+            return fabsf(p.y - near) <= TOLERANCE &&
+            fabsf(p.x) <= xDim/2 + TOLERANCE &&
+            p.z <= zDim + TOLERANCE && p.z >= -TOLERANCE;
+            break;
+        case yNeg:
+            //cout << "check back\n";
+            return fabsf(p.y + near) <= TOLERANCE &&
+            fabsf(p.x) <= xDim/2 + TOLERANCE &&
+            p.z <= zDim + TOLERANCE && p.z >= -TOLERANCE;
+            break;
+        case xNeg:
+            //cout << "check left\n";
+            return fabsf(p.x + near) <= TOLERANCE &&
+            fabsf(p.y) <= yDim/2 + TOLERANCE &&
+            p.z <= zDim + TOLERANCE && p.z >= -TOLERANCE;
+            break;
+        case xPos:
+            //cout << "check right\n";
+            return fabsf(p.x - near) <= TOLERANCE &&
+            fabsf(p.y) <= yDim/2 + TOLERANCE &&
+            p.z <= zDim + TOLERANCE && p.z >= -TOLERANCE;
+            break;
+        case zPos:
+        case zNeg:
+            return fabsf(p.z - near) <= TOLERANCE &&
+            fabsf(p.x) <= xDim/2 + TOLERANCE &&
+            fabsf(p.y) <= yDim/2 + TOLERANCE;
+            break;
+    }
 }
 
 
@@ -68,39 +169,64 @@ void Fisheye::setColor(int row, int col, const Pixel& color)
 
 Wall::Wall(int l, int h, int n, WALLTYPE t)
 {
-    length = l;
-    height = h;
     near = n;
     type = t;
     // Ax + By + Cz = D
     switch (t) {
-        case FRONT:
+        case yPos:
             A = 0.0;
             B = 1.0;
             C = 0.0;
             D = near;
+            xDim = l;
+            yDim = 0;
+            zDim = h;
             break;
-        case BACK:
+        case yNeg:
             A = 0.0;
             B = -1.0;
             C = 0.0;
             D = near;
+            xDim = l;
+            yDim = 0;
+            zDim = h;
             break;
-        case LEFT:
+        case xNeg:
             A = -1.0;
             B = 0.0;
             C = 0.0;
             D = near;
+            xDim = 0;
+            yDim = l;
+            zDim = h;
             break;
-        case RIGHT:
+        case xPos:
             A = 1.0;
             B = 0.0;
             C = 0.0;
             D = near;
+            xDim = 0;
+            yDim = l;
+            zDim = h;
             break;
-        case CEIL:
+        case zPos:
+            A = 0.0;
+            B = 0.0;
+            C = 1.0;
+            D = near;
+            xDim = l;
+            yDim = h;
+            zDim = 0;
             break;
-        case FLOOR:
+        case zNeg:
+            A = 0.0;
+            B = 0.0;
+            C = 1.0;
+            D = 0;
+            near = 0;
+            xDim = l;
+            yDim = h;
+            zDim = 0;
             break;
     }
 }
@@ -116,6 +242,14 @@ Point& Point::operator = (Point other)
 }
 
 
+bool Point::operator == (Point other)
+{
+    return other.x == this->x &&
+        other.y == this->y &&
+        other.z == this->z;
+}
+
+
 Pixel& Pixel::operator = (Pixel other)
 {
     R = other.R;
@@ -127,12 +261,12 @@ Pixel& Pixel::operator = (Pixel other)
 
 Surrounding::Surrounding(Wall* Front, Wall* Back, Wall* Left, Wall* Right, Wall* Ceil, Wall* Floor)
 {
-    this->Front = Front;
-    this->Back = Back;
-    this->Left = Left;
-    this->Right = Right;
-    this->Ceil = Ceil;
-    this->Floor = Floor;
+    this->yPos = Front;
+    this->yNeg = Back;
+    this->xNeg = Left;
+    this->xPos = Right;
+    this->zPos = Ceil;
+    this->zNeg = Floor;
 }
 
 
@@ -160,12 +294,12 @@ void saveImg(vector<Pixel> pic, int length, int height)
 
 void initializeWalls(const Surrounding& s)
 {
-    load_ppm(s.Front, "front.ppm");
-    load_ppm(s.Back, "back.ppm");
-    load_ppm(s.Left, "left.ppm");
-    load_ppm(s.Right, "right.ppm");
-    load_ppm(s.Ceil, "ceil.ppm");
-    load_ppm(s.Floor, "floor.ppm");
+    load_ppm(s.yPos, "front.ppm");
+    load_ppm(s.yNeg, "back.ppm");
+    load_ppm(s.xNeg, "left.ppm");
+    load_ppm(s.xPos, "right.ppm");
+    load_ppm(s.zPos, "ceil.ppm");
+    load_ppm(s.zNeg, "floor.ppm");
 }
 
 
