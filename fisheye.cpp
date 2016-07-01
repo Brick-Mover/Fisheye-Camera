@@ -31,8 +31,8 @@ int main(int argc, const char * argv[])
     Wall* ba = new Wall(500, 500, 250, 500, 500, yNeg);
     Wall* le = new Wall(500, 500, 250, 500, 500, xPos);
     Wall* ri = new Wall(500, 500, 250, 500, 500, xNeg);
-    Wall* ce = new Wall(500, 500, 500, 500, 500, xPos);
-    Wall* fl = new Wall(500, 500, 0, 500, 500, xNeg);
+    Wall* ce = new Wall(500, 500, 500, 500, 500, zPos);
+    Wall* fl = new Wall(500, 500, 0, 500, 500, zNeg);
     
     Surrounding s = Surrounding(fr, ba, le, ri, ce, fl);
     initializeWalls(s);
@@ -64,7 +64,7 @@ void Fisheye::render()
 {
     // On view plane, render each pixel
     for (int r = 0; r < yDim; r++) {
-        for (int c = 0; c < yDim; c++) {
+        for (int c = 0; c < xDim; c++) {
             renderPixel(r, c);
         }
     }
