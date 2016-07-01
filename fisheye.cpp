@@ -27,8 +27,38 @@ void initializeWalls(const Surrounding& s);
 
 int main(int argc, const char * argv[])
 {
+    Wall* fr = new Wall(500, 500, 250, 500, 500, yPos);
+    Wall* ba = new Wall(500, 500, 250, 500, 500, yNeg);
+    Wall* le = new Wall(500, 500, 250, 500, 500, xPos);
+    Wall* ri = new Wall(500, 500, 250, 500, 500, xNeg);
+    Wall* ce = new Wall(500, 500, 500, 500, 500, xPos);
+    Wall* fl = new Wall(500, 500, 0, 500, 500, xNeg);
+    
+    Surrounding s = Surrounding(fr, ba, le, ri, ce, fl);
+    initializeWalls(s);
+    
+    Fisheye* f = new Fisheye(M_PI,0,Point(0,0,250),s,300,300);
+    f->render();
+    vector<Pixel> result = f->getImage();
+    saveImg(result, 300, 300);
+    
 }
 
+
+Fisheye::Fisheye(float aperture,
+        float viewAngle,
+        Point cPos,
+        Surrounding walls,
+        int xDim, int yDim): cameraPos(cPos)
+{
+    this->aperture = aperture;
+    this->viewAngle = viewAngle;
+    this->walls = walls;
+    this->xDim = xDim;
+    this->yDim = yDim;
+    imagePlane.reserve(yDim*xDim);
+
+}
 
 void Fisheye::render()
 {
@@ -47,9 +77,10 @@ void Fisheye::renderPixel(int row, int col)
     float xn = 2*(float)row/xDim - 1;
     float yn = 2*(float)col/yDim - 1;
     float r = sqrtf(xn*xn + yn*yn);
-    if (r > 1)
+    if (r > 1) {
         setColor(row, col, grey_pixel);
-    
+        return;
+    }
     // get Cartesian coordinate on the sphere
     // theta: [0,2π] (xy-plane)
     float theta = atan2f(yn, xn) + viewAngle;
@@ -59,9 +90,9 @@ void Fisheye::renderPixel(int row, int col)
     float y = sinf(theta) * sinf(phi);
     float z = cosf(phi);
     
-    Vec3 dir(x - cameraPos.x,
-             y - cameraPos.y,
-             z - cameraPos.z);
+    Vec3 dir(x,y,z);
+    
+    dir.print();
     
     Point intersection = Point(0,0,0);
     Wall* w;
@@ -121,11 +152,44 @@ Pixel Wall::get_pixel(Point p) const
         cout << "!is not on wall!\n";
         exit(1);
     }
-
+    
+    int row, col;
+    float pixelSize;
+    switch (type) {
+        case yPos:
+            pixelSize = zDim/height;
+            row = int((height - p.z)/pixelSize);
+            col = int((p.x + xDim/2.0)/pixelSize);
+            break;
+        case yNeg:
+            pixelSize = zDim/height;
+            row = int((height - p.z)/pixelSize);
+            col = int((-p.x + xDim/2.0)/pixelSize);
+            break;
+        case xPos:
+            pixelSize = zDim/height;
+            row = int((height - p.z)/pixelSize);
+            col = int((-p.y + yDim/2.0)/pixelSize);
+            break;
+        case xNeg:
+            pixelSize = zDim/height;
+            row = int((height - p.z)/pixelSize);
+            col = int((p.y + yDim/2.0)/pixelSize);
+            break;
+        case zPos:
+        case zNeg:
+            pixelSize = xDim/length;
+            row = int((height - p.y)/pixelSize);
+            col = int((p.x + xDim/2.0)/pixelSize);
+            break;
+    }
+    assert(0 <= row*length+col <= length*height-1);
+    return pixels[row*length+col];
 }
 
 
-bool Wall::isOnWall(Point p) const {
+bool Wall::isOnWall(Point p) const
+{
     switch (type) {
         case yPos:
             //cout << "check front\n";
@@ -161,16 +225,18 @@ bool Wall::isOnWall(Point p) const {
 }
 
 
-void Fisheye::setColor(int row, int col, const Pixel& color)
+void Fisheye::setColor(int row, int col, Pixel color)
 {
-    imagePlane[row*xDim + col] = color;
+    assert(0 <= row*xDim+col <= xDim*yDim-1);
+    imagePlane.push_back(color);
 }
 
 
-Wall::Wall(int l, int h, int n, WALLTYPE t)
+Wall::Wall(int l, int h, int n, float rl, float rh, WALLTYPE t)
 {
     near = n;
     type = t;
+    assert(float(l)/float(h) == float(rl)/float(rh));
     // Ax + By + Cz = D
     switch (t) {
         case yPos:
@@ -223,7 +289,7 @@ Wall::Wall(int l, int h, int n, WALLTYPE t)
             B = 0.0;
             C = 1.0;
             D = 0;
-            near = 0;
+            assert(near == 0);
             xDim = l;
             yDim = h;
             zDim = 0;
@@ -267,6 +333,31 @@ Surrounding::Surrounding(Wall* Front, Wall* Back, Wall* Left, Wall* Right, Wall*
     this->xPos = Right;
     this->zPos = Ceil;
     this->zNeg = Floor;
+}
+
+
+void Wall::print() const
+{
+    switch (type) {
+        case yPos:
+            cout << "YPOS\n";
+            break;
+        case yNeg:
+            cout << "YNEG\n";
+            break;
+        case xPos:
+            cout << "XPOS\n";
+            break;
+        case xNeg:
+            cout << "XNEG\n";
+            break;
+        case zPos:
+            cout << "ZPOS\n";
+            break;
+        case zNeg:
+            cout << "ZNEG\n";
+            break;
+    }
 }
 
 
