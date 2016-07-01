@@ -60,7 +60,7 @@ const Point origin = Point(0.0, 0.0, 0.0);
 
 struct Wall
 {
-    Wall(int l, int h, int n, WALLTYPE t);
+    Wall(int l, int h, int n, float rl, float rh, WALLTYPE t);
     // Wall: Ax + By + Cz = D
     float A, B, C;
     int D;
@@ -69,8 +69,8 @@ struct Wall
     int zDim;
     int near;
     // resolution of the picture
-    int length;
-    int height;
+    float length;
+    float height;
     
     WALLTYPE type;
     vector<Pixel> pixels;
@@ -82,6 +82,7 @@ struct Wall
     // get the intersection point(with a vector in parametrized form)
     Point intersect(Vec3 dir, Point p) const;
     bool getIntersection(Vec3 dir, Point cameraPos, Point& intersection) const;
+    void print() const;
 };
 
 
@@ -101,11 +102,15 @@ struct Surrounding
 class Fisheye
 {
 public:
-    Fisheye():cameraPos(0.0,0.0,0.0) {}
+    Fisheye(float aperture,
+            float viewAngle,
+            Point cameraPos,
+            Surrounding walls,
+            int xDim, int yDim);
     vector<Pixel> getImage() const { return imagePlane; }
     void render();
     void renderPixel(int x, int y);
-    void setColor(int x, int y, const Pixel& color);
+    void setColor(int x, int y, Pixel color);
 
 private:
     float aperture;     // range of view
