@@ -32,6 +32,7 @@ struct Point
         cout << "p.x: " << x << endl;
         cout << "p.y: " << y << endl;
         cout << "p.z: " << z << endl;
+        cout << endl;
     }
 };
 
@@ -83,6 +84,8 @@ struct Wall
     Point intersect(Vec3 dir, Point p) const;
     bool getIntersection(Vec3 dir, Point cameraPos, Point& intersection) const;
     void print() const;
+    
+    void print_pic(int pos) const;
 };
 
 
