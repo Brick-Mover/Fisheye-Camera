@@ -29,10 +29,10 @@ int main(int argc, const char * argv[])
 {
     Wall* fr = new Wall(500, 500, 250, 500, 500, yPos);
     Wall* ba = new Wall(500, 500, 250, 500, 500, yNeg);
-    Wall* le = new Wall(500, 500, 250, 500, 500, xPos);
-    Wall* ri = new Wall(500, 500, 250, 500, 500, xNeg);
+    Wall* ri = new Wall(500, 500, 250, 500, 500, xPos);
+    Wall* le = new Wall(500, 500, 250, 500, 500, xNeg);
     Wall* ce = new Wall(500, 500, 500, 500, 500, zPos);
-    Wall* fl = new Wall(500, 500, 0, 500, 500, zNeg);
+    Wall* fl = new Wall(500, 500, 0  , 500, 500, zNeg);
     
     Surrounding s = Surrounding(fr, ba, le, ri, ce, fl);
     initializeWalls(s);
@@ -41,7 +41,6 @@ int main(int argc, const char * argv[])
     f->render();
     vector<Pixel> result = f->getImage();
     saveImg(result, 300, 300);
-    
 }
 
 
@@ -68,14 +67,15 @@ void Fisheye::render()
             renderPixel(r, c);
         }
     }
+//    renderPixel(270, 120);
 }
 
 
 void Fisheye::renderPixel(int row, int col)
 {
-    // convert (r,c) to normalized coordinate [-1, 1]
-    float xn = 2*(float)row/xDim - 1;
-    float yn = 2*(float)col/yDim - 1;
+    // normalize (r,c) to coordinate [-1, 1]
+    float xn = 2*float(col)/xDim - 1;
+    float yn = 1 - 2*float(row)/yDim;
     float r = sqrtf(xn*xn + yn*yn);
     if (r > 1) {
         setColor(row, col, grey_pixel);
@@ -83,17 +83,24 @@ void Fisheye::renderPixel(int row, int col)
     }
     // get Cartesian coordinate on the sphere
     // theta: [0,2π] (xy-plane)
-    float theta = atan2f(yn, xn) + viewAngle;
+    float theta = atan2f(yn, xn);
     // phi: [0,π] (z direction)
     float phi = r * aperture / 2;
     float x = cosf(theta) * sinf(phi);
     float y = sinf(theta) * sinf(phi);
     float z = cosf(phi);
     
-    Vec3 dir(x,y,z);
+//    cout << "row: " << row << endl;
+//    cout << "col: " << col << endl;
+//    cout << "r: " << r << endl;
+//    cout << "xn: " << xn << endl;
+//    cout << "yn: " << yn << endl;
+//    cout << "theta: " << theta << endl;
+//    cout << "phi: " << phi << endl;
+    Vec3 dir(z,-x,y);
     
-    dir.print();
-    
+//    dir.print();
+
     Point intersection = Point(0,0,0);
     Wall* w;
     
@@ -107,11 +114,25 @@ void Fisheye::renderPixel(int row, int col)
         w = walls.xPos;
     else if (walls.zPos->getIntersection(dir, cameraPos, intersection) == true)
         w = walls.zPos;
-    else
+    else {
+        assert(walls.zNeg->getIntersection(dir, cameraPos, intersection) == true);
         w = walls.zNeg;
+    }
     
+//    w->print();
+//    cout << "intersection: " << endl;
+//    intersection.print();
     Pixel color = w->get_pixel(intersection);
+//    color.print();
     setColor(row, col, color);
+    
+//    exit(1);
+}
+
+
+void Wall::print_pic(int pos) const
+{
+    pixels[pos].print();
 }
 
 
@@ -179,11 +200,16 @@ Pixel Wall::get_pixel(Point p) const
         case zPos:
         case zNeg:
             pixelSize = xDim/length;
-            row = int((height - p.y)/pixelSize);
+            row = int((yDim/2.0 - p.y)/pixelSize);
             col = int((p.x + xDim/2.0)/pixelSize);
             break;
     }
+//    cout << "row: " << row << endl;
+//    cout << "col: " << col << endl;
     assert(0 <= row*length+col <= length*height-1);
+    
+//    cout << "pixel pos: " << row*length+col << endl;
+//    cout << "(row: " << row << " col: " << col << ")\n";
     return pixels[row*length+col];
 }
 
