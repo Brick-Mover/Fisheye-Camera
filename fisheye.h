@@ -12,10 +12,11 @@
 #include <assert.h>
 #include <iostream>
 #include <vector>
+#include "matm.h"
 
 using namespace std;
 
-const float TOLERANCE = float(1.0e-03);
+const float TOLERANCE = float(1.0e-04);
 enum WALLTYPE {yPos, yNeg, xNeg, xPos, zPos, zNeg};
 
 
@@ -121,7 +122,7 @@ private:
     Point cameraPos;
     Surrounding walls;
     int xDim, yDim;     // size of image plane
-    
+    mat3 rotationM;     // rotation matrix
     vector<Pixel> imagePlane; // the final image produced
     
 };
