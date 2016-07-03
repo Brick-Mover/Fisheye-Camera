@@ -1,5 +1,5 @@
 //
-//  camera.h
+//  fisheye.h
 //  Fisheye Camera
 //
 //  Created by SHAO Jiuru on 6/25/16.
@@ -107,7 +107,8 @@ class Fisheye
 {
 public:
     Fisheye(float aperture,
-            float viewAngle,
+            float hAngle,
+            float vAngle,
             Point cameraPos,
             Surrounding walls,
             int xDim, int yDim);
@@ -118,11 +119,11 @@ public:
 
 private:
     float aperture;     // range of view
-    float viewAngle;    // angle of view direction
     Point cameraPos;
     Surrounding walls;
     int xDim, yDim;     // size of image plane
-    mat3 rotationM;     // rotation matrix
+    mat3 rotationM_H;     // rotation around z axis
+    mat3 rotationM_V;     // rotation around x axis
     vector<Pixel> imagePlane; // the final image produced
     
 };
