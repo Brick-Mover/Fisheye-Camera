@@ -1,13 +1,13 @@
 //
-//  fisheye.h
+//  camera.h
 //  Fisheye Camera
 //
 //  Created by SHAO Jiuru on 6/25/16.
 //  Copyright © 2016 UCLA. All rights reserved.
 //
 
-#ifndef fisheye_h
-#define fisheye_h
+#ifndef camera_h
+#define camera_h
 
 #include <assert.h>
 #include <iostream>
@@ -128,4 +128,4 @@ private:
     
 };
 
-#endif /* fisheye_h */
+#endif /* camera_h */
