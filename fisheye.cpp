@@ -1,5 +1,5 @@
 //
-//  fisheye.cpp
+//  camera.cpp
 //  Fisheye Camera
 //
 //  Created by SHAO Jiuru on 6/25/16.
