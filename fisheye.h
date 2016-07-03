@@ -6,8 +6,8 @@
 //  Copyright © 2016 UCLA. All rights reserved.
 //
 
-#ifndef camera_h
-#define camera_h
+#ifndef fisheye_h
+#define fisheye_h
 
 #include <assert.h>
 #include <iostream>
@@ -128,4 +128,4 @@ private:
     
 };
 
-#endif /* camera_h */
+#endif /* fisheye_h */
